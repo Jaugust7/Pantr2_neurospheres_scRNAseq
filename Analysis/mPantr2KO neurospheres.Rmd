@@ -289,43 +289,50 @@ write.table(as.data.frame(p2_down_go),"../Tables/p2_down_go_summary.txt", sep="\
 #annotate cell cycle stage using tricycle
 pData(dat)$cell_cycle<-estimate_Schwabe_stage(log10(exprs(dat) + 1), exprs_values = "logcounts")
 pData(dat)$tricyclePosition<-estimate_cycle_position(log10(exprs(dat) + 1), exprs_values = "logcounts")
-plot_emb_circle_scale(dat, dimred="UMAP", point.size = 0.5)
 
 circle_scale_legend()
 
-#Subset pData by clone
-cyc.AX1<-pData(dat[,pData(dat)$clone == "AX1"])
-cyc.AX2<-pData(dat[,pData(dat)$clone == "AX2"])
-cyc.AW1<-pData(dat[,pData(dat)$clone == "AW1"])
-cyc.AW2<-pData(dat[,pData(dat)$clone == "AW2"])
-
-kable(table(cyc.AX1$cell_cyc)/sum(table(cyc.AX1$cell_cyc))*100, col.names = c("Cell Cycle Stage", "Percent Cells"))
-
-pdf("../Plots/AX1 cell cycle pie.pdf", width = 5, height = 5)
-ggplot(as.data.frame((table(cyc.AX1$cell_cyc)/sum(table(cyc.AX1$cell_cyc)))*100), aes(x="", y=Freq, fill=Var1)) + geom_bar(width=1,stat = "identity") + coord_polar("y", start=0) + theme_bw() + labs(fill="Cell Cycle Stage", y= "Percent cells in cycle") + scale_fill_manual(values = c("red", "blue", "green"))
+pdf("../Plots/cell_cycle_discrete.pdf", width = 10, height = 4)
+plot_cells(dat, color_cells_by = "cell_cycle", label_cell_groups = FALSE, show_trajectory_graph = FALSE)  + facet_wrap(~ genotype)
 dev.off()
 
-kable(table(cyc.AX2$cell_cyc)/sum(table(cyc.AX2$cell_cyc))*100, col.names = c("Cell Cycle Stage", "Percent Cells"))
-
-pdf("../Plots/AX2 cell cycle pie.pdf", width = 5, height = 5)
-ggplot(as.data.frame((table(cyc.AX2$cell_cyc)/sum(table(cyc.AX2$cell_cyc)))*100), aes(x="", y=Freq, fill=Var1)) + geom_bar(width=1,stat = "identity") + coord_polar("y", start=0) + theme_bw() + labs(fill="Cell Cycle Stage", y= "Percent cells in cycle") + scale_fill_manual(values = c("red", "blue", "green"))
+pdf("../Plots/cell_cycle_continuous.pdf", width = 5, height = 4)
+plot_emb_circle_scale(dat, dimred="UMAP", facet_by = "genotype", point.size = 0.5)
 dev.off()
 
-kable(table(cyc.AW1$cell_cyc)/sum(table(cyc.AW1$cell_cyc))*100, col.names = c("Cell Cycle Stage", "Percent Cells"))
+by.clone<-lapply(unique(pData(dat)$clone), function(x){
+  a <- as.data.frame(table(pData(dat[,pData(dat)$clone == x])$cell_cycle))
+  a$Freq<-a$Freq/sum(a$Freq)
+  return(a)
+})
 
-pdf("../Plots/AW1 cell cycle pie.pdf", width = 5, height = 5)
-ggplot(as.data.frame((table(cyc.AW1$cell_cyc)/sum(table(cyc.AW1$cell_cyc)))*100), aes(x="", y=Freq, fill=Var1)) + geom_bar(width=1,stat = "identity") + coord_polar("y", start=0) + theme_bw() + labs(fill="Cell Cycle Stage", y= "Percent cells in cycle") + scale_fill_manual(values = c("red", "blue", "green"))
+names(by.clone) <- unique(pData(dat)$clone)
+by.clone <- do.call(rbind, by.clone)
+by.clone$clone<-rownames(by.clone)
+by.clone$clone<-gsub(pattern = "\\..*", replacement = "", x = by.clone$clone)
+
+pdf("../Plots/cell_cycle_clone_bar.pdf", width = 4, height = 2)
+ggbarplot(by.clone, x = "clone", y = "Freq", fill = "Var1", palette = "Set1") + xlab("Clone ID") + ylab("Percent cells") + labs(fill="Cell Cycle Stage")
 dev.off()
 
-kable(table(cyc.AW2$cell_cyc)/sum(table(cyc.AW2$cell_cyc))*100, col.names = c("Cell Cycle Stage", "Percent Cells"))
+by.geno<-lapply(unique(pData(dat)$genotype), function(x){
+  a <- as.data.frame(table(pData(dat[,pData(dat)$genotype == x])$cell_cycle))
+  a$Freq<-a$Freq/sum(a$Freq)
+  return(a)
+})
 
-pdf("../Plots/AW2 cell cycle pie.pdf", width = 5, height = 5)
-ggplot(as.data.frame((table(cyc.AW2$cell_cyc)/sum(table(cyc.AW2$cell_cyc)))*100), aes(x="", y=Freq, fill=Var1)) + geom_bar(width=1,stat = "identity") + coord_polar("y", start=0) + theme_bw() + labs(fill="Cell Cycle Stage", y= "Percent cells in cycle") + scale_fill_manual(values = c("red", "blue", "green"))
+names(by.geno) <- unique(pData(dat)$genotype)
+by.geno <- do.call(rbind, by.geno)
+by.geno$geno<-rownames(by.geno)
+by.geno$geno<-gsub(pattern = "\\..*", replacement = "", x = by.geno$geno)
+
+pdf("../Plots/cell_cycle_geno_bar.pdf", width = 2, height = 2)
+ggbarplot(by.geno,x = "geno", y = "Freq", fill = "Var1", palette = "Set1") + xlab("Clone ID") + ylab("Percent cells") + labs(fill="Cell Cycle Stage")
 dev.off()
 ```
 
 ```{r export for matrix, tidy = TRUE}
-#export expression matrix for use with scCoGAPS
+#Preform NMF for expression matrix
 results<-nmf(t(norm_exprs), k = 20, seed = 42, mask_zeros = F)
 plotPatterns(eset = dat, decomp = results, nPatterns = c(1:20))
 

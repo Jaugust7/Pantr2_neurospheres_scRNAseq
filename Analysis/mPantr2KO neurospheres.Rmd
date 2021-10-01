@@ -311,7 +311,7 @@ by.clone <- do.call(rbind, by.clone)
 by.clone$clone<-rownames(by.clone)
 by.clone$clone<-gsub(pattern = "\\..*", replacement = "", x = by.clone$clone)
 
-pdf("../Plots/cell_cycle_clone_bar.pdf", width = 4, height = 2)
+pdf("../Plots/cell_cycle_clone_bar.pdf", width = 6, height = 4)
 ggbarplot(by.clone, x = "clone", y = "Freq", fill = "Var1", palette = "Set1") + xlab("Clone ID") + ylab("Percent cells") + labs(fill="Cell Cycle Stage")
 dev.off()
 
@@ -326,7 +326,7 @@ by.geno <- do.call(rbind, by.geno)
 by.geno$geno<-rownames(by.geno)
 by.geno$geno<-gsub(pattern = "\\..*", replacement = "", x = by.geno$geno)
 
-pdf("../Plots/cell_cycle_geno_bar.pdf", width = 2, height = 2)
+pdf("../Plots/cell_cycle_geno_bar.pdf", width = 6, height =8 )
 ggbarplot(by.geno,x = "geno", y = "Freq", fill = "Var1", palette = "Set1") + xlab("Clone ID") + ylab("Percent cells") + labs(fill="Cell Cycle Stage")
 dev.off()
 ```

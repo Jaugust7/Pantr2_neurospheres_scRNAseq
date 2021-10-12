@@ -137,25 +137,20 @@ dat <- cluster_cells(dat, cluster_method = "louvain")
 
 
 #Plot UMAPs for the subsetted cds
-pdf("~/Desktop/mPantr2 scRNAseq Neurospheres/Plots/cell_cycle_umap.pdf", height = 6, width = 8)
-plot_cells(dat, color_cells_by = "Total_mRNAs", label_cell_groups = FALSE, show_trajectory_graph = FALSE)
+pdf("../Plots/cell_cycle_umap.pdf", height = 6, width = 8)
+plot_cells_3d(dat, color_cells_by = "cell_cycle", show_trajectory_graph = FALSE)
 dev.off()
 
-pdf("~/Documents/R Projects/mPantr2 scRNAseq Neurospheres/Plots/genotype_umap.pdf", height = 3, width = 4)
+pdf("../Plots/genotype_umap.pdf", height = 3, width = 4)
 plot_cells(dat, color_cells_by = "genotype", label_cell_groups = FALSE, show_trajectory_graph = FALSE, cell_size = 0.1, alpha = 0.5) + scale_color_manual(values=c("blue", "red")) + labs(color="Genotype")
 dev.off()
 
-pdf("~/Documents/R Projects/mPantr2 scRNAseq Neurospheres/Plots/sex_umap.pdf", height = 3, width = 4)
+pdf("../Plots/sex_umap.pdf", height = 3, width = 4)
 plot_cells(dat, color_cells_by = "sex", label_cell_groups = FALSE, show_trajectory_graph = FALSE)
 dev.off()
 
 pdf("~/Documents/R Projects/mPantr2 scRNAseq Neurospheres/Plots/diff_umap.pdf", height = 5, width = 7)
 plot_cells(dat, show_trajectory_graph = F, genes = c( "Hes1", "Rbfox3", "Pax6", "Dcx"), label_cell_groups = F, cell_size = 0.1, alpha = 0.5)
-dev.off()
-
-#Test plots for different genes
-pdf("~/Desktop/mPantr2 scRNAseq Neurospheres/Plots/rgcc_umap.pdf", height = 6, width = 12)
-plot_cells(dat, show_trajectory_graph = FALSE, genes =c("Rgcc"), label_cell_groups = FALSE) + facet_wrap(~ genotype) + scale_color_continuous()
 dev.off()
 
 #find marker genes to aid with annotations
@@ -220,7 +215,7 @@ dev.off()
 cds_subset<-dat[fData(dat)$gene_short_name %in% c("Rgcc")]
 
 pdf("../Plots/Rgcc_violin.pdf", width = 3, height = 3)
-plot_genes_violin(cds_subset, group_cells_by="genotype", ncol=4, ) + theme_pubr()
+plot_genes_by_group(dat, group_cells_by="genotype", markers = diffs.names) + theme_pubr()
 dev.off()
 
 rm(list = c("diffs.names", "dat.diff", "tmp2"))
@@ -288,7 +283,8 @@ write.table(as.data.frame(p2_down_go),"../Tables/p2_down_go_summary.txt", sep="\
 ```{r Cell Cycle Analysis, tidy=T}
 #annotate cell cycle stage using tricycle
 pData(dat)$cell_cycle<-estimate_Schwabe_stage(log10(exprs(dat) + 1), exprs_values = "logcounts")
-pData(dat)$tricyclePosition<-estimate_cycle_position(log10(exprs(dat) + 1), exprs_values = "logcounts")
+assay(dat, "logcounts")<-log10(exprs(dat) + 1)
+dat<-estimate_cycle_position(dat, exprs_values = "logcounts")
 
 circle_scale_legend()
 
@@ -297,8 +293,15 @@ plot_cells(dat, color_cells_by = "cell_cycle", label_cell_groups = FALSE, show_t
 dev.off()
 
 pdf("../Plots/cell_cycle_continuous.pdf", width = 5, height = 4)
-plot_emb_circle_scale(dat, dimred="UMAP", facet_by = "genotype", point.size = 0.5)
+plot_emb_circle_scale(dat, dimred="tricycleEmbedding", facet_by = "genotype", point.size = 0.5)
 dev.off()
+
+plot_ccposition_den(pData(dat)$tricyclePosition,
+                    pData(dat)$clone,
+                    "clone",
+                    bw=10,
+                    ) + ggpubr::theme_pubr()
+                    #monocle3:::monocle_theme_opts()
 
 by.clone<-lapply(unique(pData(dat)$clone), function(x){
   a <- as.data.frame(table(pData(dat[,pData(dat)$clone == x])$cell_cycle))
